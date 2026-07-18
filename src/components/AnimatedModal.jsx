@@ -1,18 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function AnimatedModal({ isOpen, onClose, children }) {
   const [isRendered, setIsRendered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const hideTimerRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
+      // 打开：取消尚未执行的卸载定时器
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
       setIsRendered(true);
-      setTimeout(() => setIsVisible(true), 10);
+      requestAnimationFrame(() => setIsVisible(true));
     } else {
+      // 关闭：先播退场动画，再卸载 DOM
       setIsVisible(false);
-      const timer = setTimeout(() => setIsRendered(false), 300);
-      return () => clearTimeout(timer);
+      hideTimerRef.current = setTimeout(() => {
+        setIsRendered(false);
+        hideTimerRef.current = null;
+      }, 300);
     }
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
   }, [isOpen]);
 
   if (!isRendered) return null;

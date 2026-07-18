@@ -21,19 +21,13 @@ const GLOBAL_STYLES = `
     background: #090909;
   }
 
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  .scroll-container {
+    overflow-y: scroll;
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* IE/Edge */
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #262626;
-    border-radius: 3px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #404040;
+  .scroll-container::-webkit-scrollbar {
+    display: none;                  /* Chrome/Safari */
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -139,7 +133,7 @@ export default function App() {
     // 外层容器：接管系统滚动条，实施 CSS Scroll Snap (层级吸附)
     <div
       ref={mainScrollRef}
-      className="h-screen w-full overflow-y-auto snap-y snap-mandatory bg-[#090909] text-white font-sans selection:bg-[#0099ff]/30 selection:text-[#0099ff] custom-scrollbar relative"
+      className="h-screen w-full scroll-container snap-y snap-mandatory bg-[#090909] text-white font-sans selection:bg-[#0099ff]/30 selection:text-[#0099ff] relative"
     >
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_STYLES }} />
 
@@ -150,7 +144,7 @@ export default function App() {
       <section className="h-screen w-full snap-start snap-always relative flex flex-col justify-center items-center z-10 overflow-hidden">
         <ParticleCanvas />
 
-        <div className="text-center px-4 z-10 max-w-5xl select-none mt-10 pointer-events-none">
+        <div className="text-center px-4 z-10 w-full max-w-5xl select-none mt-10 pointer-events-none">
           <FlippingBadge />
 
           <h1 className="text-5xl md:text-8xl lg:text-9xl font-bold text-white tracking-[-0.05em] leading-[0.85] uppercase mb-8 drop-shadow-2xl">
@@ -160,7 +154,7 @@ export default function App() {
 
           <TypingSubtitle />
 
-          <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-5 pointer-events-auto">
+          <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-5 pointer-events-auto w-full max-w-xs sm:max-w-none mx-auto">
             <a href="#projects" className="px-8 py-3.5 rounded-full bg-white text-black text-sm font-semibold hover:scale-105 transition-transform duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] w-full sm:w-auto">
               进入项目展示
             </a>
@@ -185,7 +179,7 @@ export default function App() {
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6 flex-shrink-0">
             <div className="space-y-4">
               <div className="text-xs font-mono text-[#0099ff] tracking-widest uppercase">THE GALLERY</div>
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tighter text-white">生产级项目项目</h2>
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tighter text-white">生产级项目展示</h2>
             </div>
 
             <div className="flex p-1 bg-[#141414] rounded-full border border-[#262626] self-start md:self-auto font-mono text-[11px]">
@@ -200,7 +194,7 @@ export default function App() {
           </div>
 
           {/* 内部滚动区 */}
-          <div className="flex-1 overflow-y-auto pr-2 pb-10 no-scrollbar">
+          <div className="flex-1 overflow-y-auto pb-10 no-scrollbar">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredProjects.map((project) => (
                 <ProjectCard

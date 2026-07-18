@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, Copy, Cpu, Terminal } from 'lucide-react';
+import { ArrowUpRight, Check, Copy, Cpu, Terminal, X } from 'lucide-react';
 import { AnimatedModal } from './AnimatedModal';
 
 export function ProjectModal({ project, copiedId, onClose, onCopy }) {
@@ -15,6 +15,12 @@ export function ProjectModal({ project, copiedId, onClose, onCopy }) {
               <h4 className="text-2xl font-bold text-white tracking-tight">{project.title}</h4>
               <p className="text-xs font-mono text-[#0099ff] mt-1 uppercase tracking-wider">{project.subtitle}</p>
             </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-[#1c1c1c] border border-[#262626] flex items-center justify-center text-[#666] hover:text-white hover:bg-[#262626] transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           <div className="space-y-2">
