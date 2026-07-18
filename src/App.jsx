@@ -106,14 +106,15 @@ export default function App() {
 
   // 页面可见性变化时切换标题，增加互动感
   useEffect(() => {
-    const originalTitle = 'WLED.TOP';
-    const hiddenTitle = '等你回来 ~~ WLED.TOP';
+    const originalTitle = siteDomain;
+    const hiddenTitle = `等你回来 ~~ ${siteDomain}`;
+    document.title = originalTitle;
     const handleVisibility = () => {
       document.title = document.hidden ? hiddenTitle : originalTitle;
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, []);
+  }, [siteDomain]);
 
   const copyToClipboard = (text, id) => {
     try {
