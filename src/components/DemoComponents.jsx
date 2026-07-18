@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 // 个人前端项目 Demo
 export function WwwDemo() {
@@ -17,13 +17,31 @@ export function WwwDemo() {
 }
 
 // 博客 Demo
+const BLOG_FALLBACK_TITLES = ["React 19 Hooks 解析", "Hexo 水合机制探究", "uni-app 最佳实践"];
+
+const BLOG_URL = "https://blog.wled.top";
+
 export function BlogDemo() {
   const [text, setText] = useState("");
+  const titlesRef = useRef(BLOG_FALLBACK_TITLES);
+
   useEffect(() => {
-    const titles = ["React 19 Hooks 解析", "Hexo 水合机制探究", "uni-app 最佳实践"];
+    // 拉取真实博客文章标题（本地 dev 走 vite proxy，生产走直连）
+    fetch(import.meta.env.DEV ? '/blog-api/posts.json' : `${BLOG_URL}/api/posts.json`)
+      .then(r => r.json())
+      .then(data => {
+        if (data?.data?.length) {
+          titlesRef.current = data.data.map(p => p.title);
+        }
+      })
+      .catch(() => { /* 降级使用默认标题 */ });
+  }, []);
+
+  useEffect(() => {
     let i = 0, c = 0, isDeleting = false;
     const timer = setInterval(() => {
-      const cur = titles[i];
+      const titles = titlesRef.current;
+      const cur = titles[i % titles.length];
       if (!isDeleting && c < cur.length) {
         c++; setText(cur.substring(0, c));
       } else if (!isDeleting && c === cur.length) {

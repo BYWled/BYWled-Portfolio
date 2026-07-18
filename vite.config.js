@@ -6,10 +6,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': {
-        target: 'https://status.wled.top/',
+      '/blog-api': {
+        target: 'https://blog.wled.top/api',
         changeOrigin: true,
-      },
-    },
+        rewrite: (path) => path.replace(/^\/blog-api/, ''),
+      }
+    }
   }
 })
