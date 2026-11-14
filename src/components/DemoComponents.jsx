@@ -129,6 +129,29 @@ export function StoreDemo() {
   );
 }
 
+// 工具站 Demo
+const TOOL_NAMES = ["HEIC → JPG", "PDF 合并", "视频转 GIF", "OCR 识别", "JSON 格式化", "在线录音", "字幕转换", "EXIF 查看"];
+
+export function ToolsDemo() {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setIndex(p => (p + 1) % TOOL_NAMES.length), 1600);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <div className="h-full flex items-center justify-between px-1">
+      <div className="text-[10px] font-mono">
+        <div className="text-[#666]">LOCAL WASM · 0 UPLOAD</div>
+        <div className="text-emerald-400 mt-1 transition-all">{TOOL_NAMES[index]}</div>
+      </div>
+      <div className="text-right font-mono">
+        <div className="text-white text-sm font-semibold">57</div>
+        <div className="text-[9px] text-[#666]">TOOLS</div>
+      </div>
+    </div>
+  );
+}
+
 // 数字大屏 Demo
 export function CityDemo() {
   const [points, setPoints] = useState([]);

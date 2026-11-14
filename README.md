@@ -45,11 +45,17 @@ www/
 │   │   ├── AnimatedModal.jsx # 动画模态框
 │   │   ├── ProjectCard.jsx   # 项目卡片
 │   │   ├── ProjectModal.jsx  # 项目详情弹窗
-│   │   └── DemoComponents.jsx # 各项目 Demo
+│   │   ├── DemoComponents.jsx # 各项目 Demo
+│   │   ├── KoishiPlugins.jsx # Koishi 插件生态区块
+│   │   ├── PluginCard.jsx    # 插件卡片
+│   │   └── PluginDemos.jsx   # 各插件微缩 Demo
 │   ├── data/
-│   │   └── projects.js       # 项目数据配置
+│   │   ├── projects.js       # 项目数据配置（含架构分层/核心实现/部署链路）
+│   │   └── plugins.js        # Koishi 插件数据配置
 │   └── hooks/
-│       └── useStatusData.js  # 状态数据 hook
+│       ├── useStatusData.js  # 状态数据 hook（Upptime 开放 API）
+│       ├── useNpmDownloads.js # npm 月下载量 hook（批量接口）
+│       └── useSiteDomain.js  # 域名识别 hook
 ├── docs/                     # 文档与参考
 ├── package.json
 ├── vite.config.js
@@ -66,28 +72,53 @@ www/
 
 ### 2. 项目展示
 - **3D 磁吸卡片**: 鼠标追踪的 3D 倾斜效果
-- **实时状态监控**: 通过 Uptime Kuma Badge API 获取真实延迟数据
+- **实时状态监控**: 消费 Upptime (GitHub Actions) 开放汇总 API，展示 24h 平均响应与状态
 - **专属 Demo**: 每个项目展示独特的交互式微缩 Demo
+- **深度详情弹窗**: 技术架构分层（前端/后端/基建）、核心技术实现、部署链路、GitHub 仓库直达
 
-### 3. 路由拓扑系统
+### 3. Koishi 插件生态
+- **插件卡片**: 7 个已发布 npm 的 Koishi 插件，含版本、许可证、特性标签
+- **实时下载量**: npm 批量接口（`api.npmjs.org`，一次请求取回全部）每 30 分钟刷新
+- **专属微缩 Demo**: K 线引擎、答题倒计时、流式下载、利息结算、排行榜轮换、任务状态流转、信用分仪表盘
+- **双出口链接**: 每卡片直达 npm 主页与 GitHub 源码
+
+### 4. 路由拓扑系统
 - **别名切换**: 演示 bywled.me / bywled.tech 别名路由
 - **重写引擎列表**: 展示 Cloudflare Rules 代理配置
 
-### 4. 状态监控集成
-- **数据源**: Uptime Kuma Badge API（无需认证）
-- **刷新频率**: 每 30 秒自动刷新
-- **降级策略**: API 失败时使用模拟数据
+### 5. 状态监控集成
+- **数据源**: [wled-status 仓库](https://github.com/BYWled/wled-status) (Upptime) 的 `history/summary.json`，GitHub Actions 每日自动更新
+- **刷新频率**: 每 5 分钟（raw.githubusercontent CDN 缓存约 5 分钟）
+- **降级策略**: API 失败时保留上次成功数据，绝不展示模拟状态
+- **覆盖范围**: www / blog / store / admin / score / city 六个主站（tools 尚未纳入监控，卡片显示 NO MONITOR）
 
-## 📊 监控项目映射
+## 📊 项目清单
 
-| Monitor ID | 项目 | URL |
-|------------|------|-----|
-| 2 | 博客（主站） | https://blog.wled.top |
-| 3 | 乐购商城 | https://store.wled.top |
-| 4 | 后台管理系统 | https://admin.wled.top |
-| 10 | 监控 - 服务器部署 | https://status.wled.top |
-| 13 | 光谱平台 | https://score.wled.top |
-| 15 | 数字大屏 | https://city.wled.top |
+| 项目 | 线上地址 | 源码仓库 | 部署形态 |
+|------------|------|-----|------|
+| 个人前端项目 | https://www.wled.top | [BYWled-Portfolio](https://github.com/BYWled/BYWled-Portfolio) | Cloudflare Workers |
+| 伴莺的小窝 | https://blog.wled.top | [Ying-of-Me](https://github.com/BYWled/Ying-of-Me) | Workers + GitHub Pages |
+| 伴莺的工具箱 | https://tools.wled.top | [ying-of-tools](https://github.com/BYWled/ying-of-tools) | Workers + GitHub Pages |
+| 光谱平台 | https://score.wled.top | [all-in-it](https://github.com/BYWled/all-in-it) | Workers + VPS 后端 (api-score) |
+| React Admin System | https://admin.wled.top | [admin-system](https://github.com/BYWled/admin-system) | Workers + VPS 后端 (api-admin) |
+| 智慧主城新区 | https://city.wled.top | [city](https://github.com/BYWled/city) | Workers (OpenNext) |
+| 乐购商城 | https://store.wled.top | [lego_store](https://github.com/BYWled/lego_store) | Cloudflare Workers |
+
+> 状态站已收敛为 GitHub Actions 驱动的 Upptime（https://mirror-status.wled.top ），原 Uptime Kuma 自建节点已下线。
+
+## 🧩 Koishi 插件清单
+
+| 插件 | npm 包 | 版本 | 许可证 |
+|------|--------|------|--------|
+| Monetary Bourse | koishi-plugin-monetary-bourse | v3.0.2 | GPL-3.0 |
+| Driver Exam | koishi-plugin-driver-exam | v1.0.0 | MIT |
+| Anime RSS | koishi-plugin-anime-rss | v1.0.5 | MIT |
+| Monetary Bank | koishi-plugin-monetary-bank | v2.2.0 | MIT |
+| Jrys-Fix Ranks | koishi-plugin-jrys-fix-ranks | v2.1.2 | MIT |
+| Monetary Mission | koishi-plugin-monetary-mission | v1.0.0-Alpha.1 | MIT |
+| Monetary Extra | koishi-plugin-monetary-extra | v1.0.0-Alpha.0 | MIT |
+
+> 月下载量数据由 `useNpmDownloads` 实时获取；插件实现详情见各 GitHub 仓库或本地 `E:\koishi-app\external\`。
 
 ## 🎨 设计规范
 
@@ -101,7 +132,7 @@ www/
 ### 动画规范
 - **过渡时间**: 300ms ease-out
 - **粒子刷新**: 60fps
-- **状态刷新**: 30s 间隔
+- **状态刷新**: 5min 间隔
 
 ## 🔧 配置说明
 
@@ -114,40 +145,56 @@ www/
   title: "项目标题",
   subtitle: "项目副标题",
   description: "项目描述",
+  tagline: "一句话标签",
   techs: ["Tech1", "Tech2"],
+  stack: {                          // 架构分层（弹窗展示）
+    frontend: ["..."],
+    backend: ["..."],               // 无后端项目填说明性条目
+    infra: ["..."]
+  },
+  highlights: [                     // 核心技术实现（title + detail）
+    { title: "...", detail: "..." }
+  ],
+  pipeline: ["git push", "CI 构建", "部署生效"],  // 部署链路
+  repo: "https://github.com/...",   // 源码仓库
   mobileFriendly: true,
   mainUrl: "https://example.com",
   mirrorUrl: "https://mirror.example.com",
   infrastructure: {
     provider: "Cloudflare Workers",
     workerName: "worker-name"
-  }
+  },
+  accentGradient: "from-[#fff] to-[#000]",
+  themeColor: "#ffffff"
 }
 ```
 
 ### 监控配置
-在 `src/hooks/useStatusData.js` 中配置 Uptime Kuma 地址：
+在 `src/hooks/useStatusData.js` 中配置监控映射：
 
 ```javascript
-const UPTIME_KUMA_URL = 'https://status.wled.top';
+const STATUS_SUMMARY_URL = 'https://raw.githubusercontent.com/BYWled/wled-status/main/history/summary.json';
+
+// 项目 ID → 被监控站点 URL
+export const MONITOR_MAP = {
+  www: 'https://www.wled.top',
+  blog: 'https://blog.wled.top',
+  // ...
+};
 ```
 
 ## 📝 开发指南
 
 ### 添加新项目
-1. 在 `src/data/projects.js` 添加项目数据
+1. 在 `src/data/projects.js` 添加项目数据（含 stack / highlights / pipeline / repo）
 2. 在 `src/components/DemoComponents.jsx` 添加专属 Demo
-3. 在 `src/hooks/useStatusData.js` 添加 Monitor ID 映射
+3. 在 `src/components/ProjectCard.jsx` 注册 Demo
+4. 如纳入监控：在 `wled-status` 仓库的 `.upptimerc.yml` 添加站点，并在 `useStatusData.js` 的 `MONITOR_MAP` 添加 URL 映射
 
 ### 修改样式
 - 全局样式: `src/index.css`
 - 组件样式: 使用 Tailwind CSS 类名
 - 动画样式: `src/App.jsx` 中的 `GLOBAL_STYLES`
-
-### 调试状态数据
-- 打开浏览器控制台查看 API 请求
-- 检查 `statusData` 状态对象
-- 验证 Monitor ID 映射是否正确
 
 ## 🚀 部署
 
@@ -175,5 +222,5 @@ Copyright © 2026 BYWLED. All rights reserved.
 ## 🔗 链接
 
 - **主站**: https://www.wled.top
-- **状态监控**: https://status.wled.top
+- **状态监控**: https://mirror-status.wled.top（GitHub Actions · Upptime）
 - **GitHub**: https://github.com/BYWled

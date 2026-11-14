@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react';
-import { PROJECTS, MONITOR_MAP } from '../data/projects';
 
-const UPTIME_KUMA_URL = 'https://status.wled.top';
+// 状态数据源：GitHub Actions (Upptime) 自动生成的开放汇总 JSON
+// 仓库: https://github.com/BYWled/wled-status → history/summary.json
+// 字段: { name, url, status: 'up'|'down', uptimeDay, timeDay(24h 平均响应 ms), ... }
+// raw.githubusercontent.com 自带 CORS 且约 5 分钟 CDN 缓存，轮询间隔与之对齐
+const STATUS_SUMMARY_URL = 'https://raw.githubusercontent.com/BYWled/wled-status/main/history/summary.json';
+const REFRESH_INTERVAL = 5 * 60 * 1000;
+
+// 项目 ID → 被监控站点 URL 映射（tools 尚未加入 Upptime 监控列表，暂无状态数据）
+export const MONITOR_MAP = {
+  www: 'https://www.wled.top',
+  blog: 'https://blog.wled.top',
+  store: 'https://store.wled.top',
+  admin: 'https://admin.wled.top',
+  score: 'https://score.wled.top',
+  city: 'https://city.wled.top',
+};
 
 export function useStatusData() {
   const [statusData, setStatusData] = useState({});
@@ -12,77 +26,37 @@ export function useStatusData() {
 
     const fetchStatus = async () => {
       try {
+        const response = await fetch(STATUS_SUMMARY_URL);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const sites = await response.json();
+
+        const byUrl = new Map(sites.map(site => [site.url, site]));
         const metrics = {};
-        const monitorIds = Object.keys(MONITOR_MAP);
 
-        // 并行获取所有 monitor 的状态和 ping 数据
-        const fetchPromises = monitorIds.map(async (monitorId) => {
-          const projectId = MONITOR_MAP[monitorId];
-
-          try {
-            const [statusResponse, pingResponse] = await Promise.all([
-              fetch(`${UPTIME_KUMA_URL}/api/badge/${monitorId}/status`),
-              fetch(`${UPTIME_KUMA_URL}/api/badge/${monitorId}/ping`)
-            ]);
-
-            const statusSvg = await statusResponse.text();
-            const pingSvg = await pingResponse.text();
-
-            const statusMatch = statusSvg.match(/aria-label="Status: (\w+)"/);
-            const status = statusMatch ? statusMatch[1].toLowerCase() : 'up';
-
-            const pingMatch = pingSvg.match(/aria-label="Avg\. Ping \(24h\): (\d+)ms"/);
-            const ping = pingMatch ? parseInt(pingMatch[1]) : 0;
-
-            return {
-              projectId,
-              data: {
-                ping,
-                status: status === 'up' ? 'up' : status === 'down' ? 'down' : 'pending'
-              }
-            };
-          } catch (err) {
-            console.warn(`Failed to fetch data for monitor ${monitorId}:`, err);
-            return {
-              projectId,
-              data: { ping: 0, status: 'up' }
-            };
-          }
+        Object.entries(MONITOR_MAP).forEach(([projectId, url]) => {
+          const site = byUrl.get(url);
+          if (!site) return;
+          metrics[projectId] = {
+            ping: site.timeDay || 0, // 24h 平均响应时间 (ms)
+            status: site.status === 'up' ? 'up' : site.status === 'down' ? 'down' : 'pending',
+            uptime: site.uptimeDay, // 24h 在线率，如 "100.00%"
+          };
         });
 
-        const results = await Promise.all(fetchPromises);
+        if (!isMounted) return;
+        setStatusData(metrics);
 
-        results.forEach(({ projectId, data }) => {
-          metrics[projectId] = data;
-        });
-
-        if (isMounted && Object.keys(metrics).length > 0) {
-          setStatusData(metrics);
-
-          const upCount = results.filter(r => r.data.status === 'up').length;
-          const totalCount = results.length;
-          const uptime = totalCount > 0 ? ((upCount / totalCount) * 100).toFixed(1) : '99.9';
-          setOverallUptime(uptime);
-        } else {
-          throw new Error("No data fetched from badge API");
-        }
+        const monitored = Object.values(metrics);
+        const upCount = monitored.filter(m => m.status === 'up').length;
+        setOverallUptime(monitored.length ? ((upCount / monitored.length) * 100).toFixed(1) : null);
       } catch (error) {
-        console.warn("Status API fetch failed, using simulated data:", error.message);
-        if (isMounted) {
-          const simulated = {};
-          PROJECTS.forEach(p => {
-            const base = p.id === 'status' ? 42 : 12;
-            const variance = Math.floor(Math.random() * 6);
-            simulated[p.id] = { ping: base + variance, status: 'up' };
-          });
-          setStatusData(simulated);
-          setOverallUptime('99.9');
-        }
+        // 拉取失败：保留上次成功数据（或空态），绝不展示模拟数据
+        console.warn('Status summary fetch failed:', error.message);
       }
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 30000);
+    const interval = setInterval(fetchStatus, REFRESH_INTERVAL);
     return () => { isMounted = false; clearInterval(interval); };
   }, []);
 

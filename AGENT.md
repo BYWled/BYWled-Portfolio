@@ -19,9 +19,12 @@ src/
 ├── main.jsx                   # 入口：挂载 React 根组件
 ├── index.css                  # 全局 CSS：Tailwind 导入
 ├── data/
-│   └── projects.js            # 静态数据：项目列表、Monitor 映射
+│   ├── projects.js            # 静态数据：项目列表、架构分层、核心实现、部署链路
+│   └── plugins.js             # 静态数据：Koishi 插件列表（npm 包名/版本/许可证/特性）
 ├── hooks/
-│   └── useStatusData.js       # 数据逻辑：API 请求、状态管理
+│   ├── useStatusData.js       # 数据逻辑：Upptime 汇总 API 请求、状态管理
+│   ├── useNpmDownloads.js     # 数据逻辑：npm 批量下载量请求（30 分钟轮询）
+│   └── useSiteDomain.js       # 域名识别：按 hostname 返回站点名
 └── components/
     ├── index.js               # 统一导出
     ├── Header.jsx             # 布局：顶部导航栏
@@ -32,8 +35,11 @@ src/
     ├── TiltCard.jsx           # 交互：3D 倾斜卡片
     ├── AnimatedModal.jsx      # 交互：动画模态框
     ├── ProjectCard.jsx        # 业务：项目卡片组件
-    ├── ProjectModal.jsx       # 业务：项目详情弹窗
-    └── DemoComponents.jsx     # 业务：各项目微缩 Demo
+    ├── ProjectModal.jsx       # 业务：项目详情弹窗（架构/实现/链路/仓库）
+    ├── DemoComponents.jsx     # 业务：各项目微缩 Demo
+    ├── KoishiPlugins.jsx      # 业务：Koishi 插件生态区块（统计 + 网格）
+    ├── PluginCard.jsx         # 业务：插件卡片（版本/下载量/Demo/双链接）
+    └── PluginDemos.jsx        # 业务：各插件微缩 Demo
 ```
 
 ### 数据流
@@ -41,8 +47,12 @@ src/
 ```
 [projects.js] → [useStatusData.js] → [App.jsx] → [ProjectCard/ProjectModal]
                       ↓
-              [Uptime Kuma API]
-              (Badge API, 无需认证)
+        [wled-status 仓库 summary.json]
+        (Upptime · GitHub Actions 自动更新 · raw.githubusercontent 直连)
+
+[plugins.js] → [useNpmDownloads.js] → [KoishiPlugins] → [PluginCard]
+                     ↓
+        [api.npmjs.org 批量下载量接口] (单请求全量, 自带 CORS)
 ```
 
 ## 🔑 关键配置
@@ -50,60 +60,108 @@ src/
 ### 1. 项目数据 (data/projects.js)
 
 ```javascript
-// MONITOR_MAP: Uptime Kuma Monitor ID → Project ID 映射
-const MONITOR_MAP = {
-  '2': 'blog',
-  '3': 'store',
-  '4': 'admin',
-  '10': 'status',
-  '13': 'score',
-  '15': 'city',
-};
-
-// PROJECTS: 项目配置数组
+// PROJECTS: 项目配置数组（status 站已下线，tools 为新增）
 const PROJECTS = [
   {
-    id: "www",           // 唯一标识
+    id: "www",               // 唯一标识
     title: "项目标题",
     subtitle: "副标题",
     description: "描述",
-    techs: ["Tech1"],    // 技术栈
-    mobileFriendly: true, // 是否移动端适配
-    mainUrl: "https://", // 主站 URL
-    mirrorUrl: null,     // 镜像 URL（可选）
+    tagline: "一句话标签",
+    techs: ["Tech1"],        // 顶层技术标签（卡片展示）
+    stack: {                 // 架构分层（弹窗展示）
+      frontend: ["..."],
+      backend: ["..."],
+      infra: ["..."]
+    },
+    highlights: [            // 核心技术实现（title + detail）
+      { title: "...", detail: "..." }
+    ],
+    pipeline: ["git push", "CI", "部署生效"],  // 部署链路
+    repo: "https://github.com/BYWled/...",     // 源码仓库
+    mobileFriendly: true,
+    mainUrl: "https://",
+    mirrorUrl: null,         // 镜像 URL（可选）
     infrastructure: {
       provider: "Cloudflare Workers",
       workerName: "worker-name"
     },
-    accentGradient: "from-[#fff] to-[#000]", // 渐变色
-    themeColor: "#ffffff",                   // 主题色
-    features: ["特性1", "特性2"]             // 核心特性
+    accentGradient: "from-[#fff] to-[#000]",
+    themeColor: "#ffffff"
   }
 ];
+
+// 当前项目清单（7 个）:
+// www    → https://www.wled.top    (BYWled-Portfolio, Workers)
+// blog   → https://blog.wled.top   (Ying-of-Me, Workers + GitHub Pages)
+// tools  → https://tools.wled.top  (ying-of-tools, Workers + GitHub Pages)
+// score  → https://score.wled.top  (all-in-it 前端 Workers + 独立 VPS 后端)
+// admin  → https://admin.wled.top  (admin-system 前端 Workers + 独立 VPS 后端)
+// city   → https://city.wled.top   (city, OpenNext → Workers)
+// store  → https://store.wled.top  (lego_store, Workers 静态)
 ```
 
 ### 2. 状态数据 Hook (hooks/useStatusData.js)
 
 ```javascript
-// API 端点
-const UPTIME_KUMA_URL = 'https://status.wled.top';
+// 数据源：Upptime (GitHub Actions) 自动生成的开放汇总 JSON
+const STATUS_SUMMARY_URL = 'https://raw.githubusercontent.com/BYWled/wled-status/main/history/summary.json';
+// 响应字段: [{ name, url, status: 'up'|'down', uptimeDay, timeDay(24h 平均响应 ms), ... }]
 
-// Badge API 格式（无需认证）
-// 状态: /api/badge/:monitorId/status → SVG
-// 延迟: /api/badge/:monitorId/ping → SVG
+// 项目 ID → 被监控站点 URL 映射（tools 尚未纳入 Upptime 监控）
+export const MONITOR_MAP = {
+  www: 'https://www.wled.top',
+  blog: 'https://blog.wled.top',
+  store: 'https://store.wled.top',
+  admin: 'https://admin.wled.top',
+  score: 'https://score.wled.top',
+  city: 'https://city.wled.top',
+};
 
 // 返回值
 {
   statusData: {
-    blog: { ping: 131, status: 'up' },
-    store: { ping: 109, status: 'up' },
+    blog: { ping: 78, status: 'up', uptime: '100.00%' },
     // ...
   },
-  overallUptime: '100.0' // 整体在线率
+  overallUptime: '100.0'  // 主站全在线率
 }
 ```
 
-### 3. 全局样式 (App.jsx GLOBAL_STYLES)
+**降级策略**：fetch 失败时保留上次成功数据（或空态），**绝不展示模拟状态**。
+**刷新间隔**：5 分钟（raw.githubusercontent CDN 缓存约 5 分钟）。
+**状态站链入口**：Header / Hero / Footer 均指向 `https://mirror-status.wled.top`（Upptime 站点），原 `status.wled.top` (Uptime Kuma) 已永久下线。
+
+### 3. 插件数据 (data/plugins.js)
+
+```javascript
+// PLUGINS: Koishi 插件配置数组（7 个，按月下载量降序）
+const PLUGINS = [
+  {
+    id: 'bourse',            // 唯一标识（同时用于 Demo 注册）
+    name: 'Monetary Bourse', // 展示名
+    pkg: 'koishi-plugin-monetary-bourse', // npm 包名（拼接 npm 主页链接）
+    version: 'v3.0.2',       // 静态维护，发布新版时手动更新
+    license: 'GPL-3.0',
+    accent: '#f59e0b',       // 主题色（下载量徽章着色）
+    description: '...',
+    features: ['特性1', '特性2', '特性3'],
+    repo: 'https://github.com/BYWled/...',
+  }
+];
+```
+
+### 4. npm 下载量 Hook (hooks/useNpmDownloads.js)
+
+```javascript
+// npm 批量接口：一次请求返回全部包的近 30 天下载量，自带 CORS
+const BULK_URL = 'https://api.npmjs.org/downloads/point/last-month/<pkg1>,<pkg2>,...';
+const REFRESH_INTERVAL = 30 * 60 * 1000; // 30 分钟
+
+// 返回 { [pkg]: number }；失败时保留上次成功数据（或 null）
+```
+
+### 5. 全局样式 (App.jsx GLOBAL_STYLES)
 
 ```javascript
 const GLOBAL_STYLES = `
@@ -147,31 +205,28 @@ hover:scale-105
 ### 1. 添加新项目
 
 ```javascript
-// 步骤 1: data/projects.js 添加项目配置
-{
-  id: "new-project",
-  title: "新项目",
-  // ...其他配置
-}
-
-// 步骤 2: hooks/useStatusData.js 添加 Monitor 映射
-const MONITOR_MAP = {
-  // ...现有映射
-  '16': 'new-project', // 新 Monitor ID
-};
-
-// 步骤 3: components/DemoComponents.jsx 添加 Demo
+// 步骤 1: data/projects.js 添加项目配置（含 stack/highlights/pipeline/repo）
+// 步骤 2: components/DemoComponents.jsx 添加 Demo
 export function NewProjectDemo() {
   return <div>...</div>;
 }
-
-// 步骤 4: components/ProjectCard.jsx 注册 Demo
-import { NewProjectDemo } from './DemoComponents';
-// 在 JSX 中添加
+// 步骤 3: components/ProjectCard.jsx 注册 Demo
 {project.id === 'new-project' && <NewProjectDemo />}
+// 步骤 4 (可选): 在 wled-status 仓库 .upptimerc.yml 添加站点监控，
+//               并在 useStatusData.js 的 MONITOR_MAP 添加 URL 映射
 ```
 
-### 2. 修改粒子动画
+### 2. 添加新 Koishi 插件
+
+```javascript
+// 步骤 1: data/plugins.js 添加插件配置（pkg/version/license/accent/features/repo）
+// 步骤 2: components/PluginDemos.jsx 添加专属微缩 Demo
+export function NewPluginDemo() { /* h-[70px] 容器内自适应 */ }
+// 步骤 3: components/PluginCard.jsx 的 DEMOS 映射注册
+const DEMOS = { ..., 'new-plugin': NewPluginDemo };
+```
+
+### 3. 修改粒子动画
 
 文件: `components/ParticleCanvas.jsx`
 
@@ -180,19 +235,6 @@ import { NewProjectDemo } from './DemoComponents';
 const INFLUENCE_RADIUS = 200;  // 鼠标影响半径
 const MAX_SPEED = 1.5;         // 粒子最大速度
 const CONNECTION_DIST = 120;   // 连线距离阈值
-
-// 粒子类
-class Particle {
-  update(mouseX, mouseY, isInCanvas) {
-    // 1. 基础运动
-    // 2. 边缘反弹
-    // 3. 鼠标影响计算
-    // 4. 速度限制
-  }
-  draw(ctx) {
-    // 绘制粒子
-  }
-}
 ```
 
 ### 3. 修改状态监控
@@ -201,16 +243,19 @@ class Particle {
 
 ```javascript
 // 修改刷新间隔
-const interval = setInterval(fetchStatus, 30000); // 30秒
-
-// 修改降级数据
-const simulated = {};
-PROJECTS.forEach(p => {
-  simulated[p.id] = { ping: 20, status: 'up' };
-});
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 分钟，与 raw CDN 缓存对齐
 ```
 
-### 4. 修改 Header 状态显示
+### 4. 修改状态监控
+
+文件: `hooks/useStatusData.js`
+
+```javascript
+// 修改刷新间隔
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 分钟，与 raw CDN 缓存对齐
+```
+
+### 5. 修改 Header 状态显示
 
 文件: `components/Header.jsx`
 
@@ -221,6 +266,10 @@ PROJECTS.forEach(p => {
 ```
 
 ## ⚠️ 注意事项
+
+### 0. 信息暴露面（重要）
+- 展示层（projects.js / plugins.js / 弹窗 / 部署链路）**严禁**出现：云供应商名、内部端口、进程名（PM2 条目）、数据库名、自托管 Runner 细节
+- 后端拓扑只允许表述为"独立 VPS 常驻进程 + 加密隧道回源"；内部细节以 `E:\懒鬼，这些东西打算放一辈子？\VPS\` 运维文档为唯一可信源，不要同步进本仓库
 
 ### 1. Canvas 性能
 - 粒子数量: `Math.min(80, 面积 / 15000)`
@@ -242,10 +291,16 @@ PROJECTS.forEach(p => {
 - Tailwind 类名优先于全局样式
 - 使用 `!important` 谨慎
 
+### 5. 图标选择
+- lucide-react v1.x 已移除品牌图标（Github 等），仓库链接用 `GitBranch` 代替
+
 ## 🐛 常见问题
 
+### Q: 卡片显示 NO MONITOR？
+A: 该项目尚未加入 `wled-status` 仓库的 `.upptimerc.yml` 监控列表（如 tools）。加入后自动获取数据。
+
 ### Q: 状态数据不显示？
-A: 检查 `MONITOR_MAP` 配置是否正确，Monitor ID 是否存在。
+A: 检查 `MONITOR_MAP` 中的 URL 是否与 `.upptimerc.yml` 中站点 URL 完全一致（按 URL 精确匹配）。
 
 ### Q: 粒子动画卡顿？
 A: 减少粒子数量或增大 `Math.min` 的分母值。
@@ -262,13 +317,31 @@ A: 检查 `AnimatedModal` 的 `isRendered` 状态延迟逻辑。
 - [Vite 文档](https://vitejs.dev)
 - [Tailwind CSS](https://tailwindcss.com)
 - [Lucide React 图标](https://lucide.dev)
-- [Uptime Kuma API](https://github.com/louislam/uptime-kuma)
+- [Upptime](https://github.com/upptime/upptime)
+- [wled-status 状态仓库](https://github.com/BYWled/wled-status)
 
 ## 🔄 更新日志
+
+### 2026-11-15
+- 脱敏修复：部署链路/架构数据移除云供应商、内部端口、进程名、库名与自托管 Runner 细节
+- 弹窗滚动条修复：`custom-scrollbar`（未定义的幽灵类）→ `no-scrollbar`
+- 插件卡片底部间距修复：固定 `h-[395px]` → `min-h-[395px]`（特性标签行高可变，固定高度被 justify-between 吃掉底部内边距）
+
+### 2026-11-14 (二)
+- 新增"Koishi 插件生态"Snap 区块（KoishiPlugins / PluginCard / PluginDemos / plugins.js / useNpmDownloads）
+- 7 个已发布 npm 插件展示：实时月下载量（npm 批量接口 30 分钟轮询）+ 专属微缩 Demo（K 线/答题/流式下载/利息/排行榜/任务/信用分仪表盘）
+- Header 导航新增"插件生态"锚点；首屏徽章新增 "7 NPM PLUGINS · KOISHI ECOSYSTEM"
+
+### 2026-11-14
+- 状态数据源切换：Uptime Kuma Badge API（已下线）→ Upptime `summary.json` 开放 API
+- 移除 Uptime Monitor 项目卡片；状态站入口统一切换至 mirror-status.wled.top
+- 新增"伴莺的工具箱"（tools.wled.top）项目与专属 Demo
+- 项目详情大改版：架构分层（stack）、核心技术实现（highlights）、部署链路（pipeline）、GitHub 仓库直达
+- 全部项目数据按线上仓库实况重写（Vite 8 / OpenNext / TanStack / WASM 引擎等）
+- 移除模拟状态降级数据，失败时保留上次真实数据
 
 ### 2026-07-18
 - 初始版本
 - 拆分组件结构
 - 集成 Uptime Kuma Badge API
 - 实现粒子画布交互
-- 添加 GitHub Actions Status 链接

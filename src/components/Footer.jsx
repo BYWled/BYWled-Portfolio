@@ -1,4 +1,4 @@
-import { Activity, GitBranch } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 export function Footer({ siteDomain, onDomainClick }) {
   return (
@@ -30,13 +30,9 @@ export function Footer({ siteDomain, onDomainClick }) {
             <div className="flex flex-col md:items-end gap-2">
               <span className="text-white/40 uppercase tracking-widest text-[10px]">TELEMETRY</span>
               <div className="flex flex-col gap-2">
-                <a href="https://status.wled.top/status" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-emerald-400 transition-colors w-max md:ml-auto">
+                <a href="https://mirror-status.wled.top" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-emerald-400 transition-colors w-max md:ml-auto">
                   <Activity className="w-3.5 h-3.5" />
-                  <span>Azure Node Status</span>
-                </a>
-                <a href="https://mirror-status.wled.top" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-purple-400 transition-colors w-max md:ml-auto">
-                  <GitBranch className="w-3.5 h-3.5" />
-                  <span>GitHub Actions Status</span>
+                  <span>服务状态面板 · GitHub Actions</span>
                 </a>
               </div>
             </div>

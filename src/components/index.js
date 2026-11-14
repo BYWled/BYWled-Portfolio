@@ -7,4 +7,5 @@ export { Header } from './Header';
 export { Footer } from './Footer';
 export { ProjectCard } from './ProjectCard';
 export { ProjectModal } from './ProjectModal';
-export { WwwDemo, BlogDemo, AdminDemo, ScoreDemo, StoreDemo, CityDemo } from './DemoComponents';
+export { KoishiPlugins } from './KoishiPlugins';
+export { WwwDemo, BlogDemo, AdminDemo, ScoreDemo, StoreDemo, CityDemo, ToolsDemo } from './DemoComponents';

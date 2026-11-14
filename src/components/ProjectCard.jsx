@@ -1,6 +1,13 @@
 import { Smartphone, Monitor, ArrowUpRight, Info } from 'lucide-react';
 import { TiltCard } from './TiltCard';
-import { WwwDemo, BlogDemo, AdminDemo, ScoreDemo, StoreDemo, CityDemo } from './DemoComponents';
+import { WwwDemo, BlogDemo, AdminDemo, ScoreDemo, StoreDemo, CityDemo, ToolsDemo } from './DemoComponents';
+
+// 状态指示点颜色：up 绿 / down 红 / 其他琥珀
+const STATUS_DOT = {
+  up: 'bg-emerald-500',
+  down: 'bg-red-500',
+  pending: 'bg-amber-500',
+};
 
 export function ProjectCard({ project, status, onClick }) {
   return (
@@ -9,10 +16,19 @@ export function ProjectCard({ project, status, onClick }) {
         <div>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] font-mono text-[#999999]">
-                {status ? `${status.ping}ms` : 'Connecting...'}
-              </span>
+              {status ? (
+                <>
+                  <span className={`w-2 h-2 rounded-full ${STATUS_DOT[status.status] || 'bg-amber-500'} animate-pulse`}></span>
+                  <span className="text-[10px] font-mono text-[#999999]">
+                    {status.status === 'up' ? `${status.ping}ms` : status.status === 'down' ? 'DOWN' : '...'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-[#444]"></span>
+                  <span className="text-[10px] font-mono text-[#666]">NO MONITOR</span>
+                </>
+              )}
             </div>
             <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-medium tracking-tight ${project.mobileFriendly ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
               }`}>
@@ -34,22 +50,14 @@ export function ProjectCard({ project, status, onClick }) {
             {project.id === 'admin' && <AdminDemo />}
             {project.id === 'score' && <ScoreDemo />}
             {project.id === 'store' && <StoreDemo />}
-            {project.id === 'status' && (
-              <div className="h-full flex flex-col justify-center text-[10px] text-emerald-400 font-mono">
-                <div className="flex items-end gap-1 h-6">
-                  {[...Array(15)].map((_, i) => (
-                    <div key={i} className="w-2 bg-emerald-500 rounded-t-sm animate-pulse" style={{ height: `${20 + Math.random() * 80}%`, animationDelay: `${i * 0.1}s` }}></div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {project.id === 'tools' && <ToolsDemo />}
           </div>
         </div>
 
         {/* 卡片内直接跳转区 */}
         <div className="grid grid-cols-2 gap-2 pt-4 border-t border-[#1c1c1c]">
           <a
-            href={project.id === 'status' ? 'https://status.wled.top/status' : project.mainUrl}
+            href={project.mainUrl}
             target="_blank" rel="noreferrer"
             onClick={(e) => e.stopPropagation()} // 防止触发弹窗
             className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white text-black hover:bg-gray-200 transition-colors text-[11px] font-semibold relative z-20"

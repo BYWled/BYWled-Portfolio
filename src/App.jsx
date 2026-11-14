@@ -10,7 +10,8 @@ import {
   Header,
   Footer,
   ProjectCard,
-  ProjectModal
+  ProjectModal,
+  KoishiPlugins
 } from './components';
 
 const GLOBAL_STYLES = `
@@ -158,7 +159,7 @@ export default function App() {
             <a href="#projects" className="px-8 py-3.5 rounded-full bg-white text-black text-sm font-semibold hover:scale-105 transition-transform duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] w-full sm:w-auto">
               进入项目展示
             </a>
-            <a href="https://status.wled.top/status" target="_blank" rel="noreferrer" className="px-8 py-3.5 rounded-full bg-[#141414] border border-[#262626] text-sm text-white hover:bg-[#1c1c1c] transition-colors flex items-center justify-center gap-2 w-full sm:w-auto group">
+            <a href="https://mirror-status.wled.top" target="_blank" rel="noreferrer" className="px-8 py-3.5 rounded-full bg-[#141414] border border-[#262626] text-sm text-white hover:bg-[#1c1c1c] transition-colors flex items-center justify-center gap-2 w-full sm:w-auto group">
               <Activity className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
               查看节点状态
             </a>
@@ -209,7 +210,10 @@ export default function App() {
         </div>
       </section>
 
-      {/* SECTION 3: 路由拓扑 (Snap 节点, 内部支持溢出滚动) */}
+      {/* SECTION 3: Koishi 插件生态 (Snap 节点, 内部支持溢出滚动) */}
+      <KoishiPlugins />
+
+      {/* SECTION 4: 路由拓扑 (Snap 节点, 内部支持溢出滚动) */}
       <section id="infrastructure" className="h-screen w-full snap-start snap-always pt-24 pb-12 px-6 flex flex-col relative z-10 border-t border-[#1c1c1c]">
         <div className="max-w-7xl mx-auto w-full flex flex-col h-full overflow-y-auto no-scrollbar">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -295,7 +299,7 @@ export default function App() {
         </div>
       </section>
 
-      {/* SECTION 4: Footer */}
+      {/* SECTION 5: Footer */}
       <Footer siteDomain={siteDomain} onDomainClick={scrollToTop} />
 
       {/* 项目详情弹窗 */}

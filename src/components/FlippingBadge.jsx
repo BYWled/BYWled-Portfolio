@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { CloudLightning, Layers, Cpu, Activity } from 'lucide-react';
+import { CloudLightning, Layers, Cpu, Activity, Plug } from 'lucide-react';
 
 const BADGES = [
   { text: "CLOUDFLARE EDGE MULTI-DISTRIBUTION", icon: <CloudLightning className="w-3.5 h-3.5 text-[#0099ff]" /> },
   { text: "NEXT.JS 16 FULLSTACK ARCHITECTURE", icon: <Layers className="w-3.5 h-3.5 text-cyan-400" /> },
-  { text: "REACT 19 + VITE 7 ENGINEERING", icon: <Cpu className="w-3.5 h-3.5 text-orange-400" /> },
-  { text: "AZURE KUMA TELEMETRY NODE", icon: <Activity className="w-3.5 h-3.5 text-emerald-400" /> }
+  { text: "7 NPM PLUGINS · KOISHI ECOSYSTEM", icon: <Plug className="w-3.5 h-3.5 text-amber-400" /> },
+  { text: "REACT 19 + VITE 8 ENGINEERING", icon: <Cpu className="w-3.5 h-3.5 text-orange-400" /> },
+  { text: "GITHUB ACTIONS UPTIME TELEMETRY", icon: <Activity className="w-3.5 h-3.5 text-emerald-400" /> }
 ];
 
 export function FlippingBadge() {

@@ -34,8 +34,9 @@ export function Header({ isScrolled, overallUptime, siteDomain, onDomainClick })
         </div>
         <nav className="flex items-center gap-6 text-sm text-[#999999]">
           <a href="#projects" className="hover:text-white transition-colors">项目展示</a>
+          <a href="#plugins" className="hover:text-white transition-colors">插件生态</a>
           <a href="#infrastructure" className="hover:text-white transition-colors hidden md:inline">节点分布</a>
-          <a href="https://status.wled.top/status" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-white transition-colors font-mono">
+          <a href="https://mirror-status.wled.top" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-white transition-colors font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Status <span className="text-[10px] text-emerald-500">{overallUptime || '...'}%</span>
           </a>
