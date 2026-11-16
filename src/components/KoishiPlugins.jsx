@@ -1,6 +1,6 @@
 import { Plug } from 'lucide-react';
 import { PLUGINS } from '../data/plugins';
-import { useNpmDownloads } from '../hooks/useNpmDownloads';
+import { useNpmMeta } from '../hooks/useNpmMeta';
 import { PluginCard, formatDownloads } from './PluginCard';
 
 // 统计小方块：与全局卡片语言一致
@@ -14,10 +14,10 @@ function StatChip({ label, value, accent = '#0099ff' }) {
 }
 
 export function KoishiPlugins() {
-  const downloads = useNpmDownloads();
+  const meta = useNpmMeta();
 
-  const total = downloads
-    ? Object.values(downloads).reduce((sum, n) => sum + n, 0)
+  const total = meta?.downloads
+    ? Object.values(meta.downloads).reduce((sum, n) => sum + n, 0)
     : null;
 
   return (
@@ -33,7 +33,7 @@ export function KoishiPlugins() {
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tighter text-white">Koishi 插件生态</h2>
             <p className="text-[#999999] text-sm leading-relaxed max-w-xl">
-              已发布至 npm 的 Koishi v4 机器人插件：涵盖拟真金融、群治理、番剧订阅与信用体系，下载量来自 npm Registry 实时数据。
+              已发布至 npm 的 Koishi v4 机器人插件：涵盖拟真金融、群治理、番剧订阅与信用体系，版本与下载量均来自 npm Registry 实时数据。
             </p>
           </div>
 
@@ -52,7 +52,7 @@ export function KoishiPlugins() {
               <PluginCard
                 key={plugin.id}
                 plugin={plugin}
-                downloads={downloads?.[plugin.pkg]}
+                meta={meta}
               />
             ))}
           </div>

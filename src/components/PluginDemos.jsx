@@ -176,6 +176,125 @@ export function MissionDemo() {
   );
 }
 
+// ============ 兑换码：口令逐字符生成 + 事务入账 ============
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 剔除易混淆字符
+
+export function CdkDemo() {
+  const [code, setCode] = useState('');
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    let timer;
+    const gen = () => {
+      setDone(false);
+      let i = 0;
+      const build = () => {
+        i++;
+        setCode(Array.from({ length: 8 }, (_, k) =>
+          k < i ? CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)] : '·'
+        ).join(''));
+        if (i < 8) {
+          timer = setTimeout(build, 70);
+        } else {
+          setDone(true);
+          timer = setTimeout(gen, 1500);
+        }
+      };
+      build();
+    };
+    gen();
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <div className="h-full flex flex-col justify-between">
+      <div className="text-[10px] font-mono text-[#f43f5e] flex justify-between">
+        <span>CDK CREATE</span>
+        <span className={done ? 'text-emerald-400' : 'text-[#666]'}>{done ? '✓ 事务入账' : '生成中'}</span>
+      </div>
+      <div className="text-[13px] text-white font-mono tracking-[0.2em] mt-1">{code || '········'}</div>
+      <div className="flex justify-between text-[9px] font-mono text-[#666]">
+        <span>×500 份 · 有效期 7d</span>
+        <span className="text-rose-400">cdk VIP2026</span>
+      </div>
+    </div>
+  );
+}
+
+// ============ 聊天奖励：消息掉落货币 ============
+const CHATTERS = ['星野', '柚子', '阿澄', '小满', 'Neko'];
+
+export function ChatRewardDemo() {
+  const [rewards, setRewards] = useState([]);
+  useEffect(() => {
+    let timer;
+    const tick = () => {
+      const next = {
+        key: Math.random(),
+        user: CHATTERS[Math.floor(Math.random() * CHATTERS.length)],
+        amount: Math.floor(Math.random() * 30) + 3,
+      };
+      setRewards(prev => [...prev, next].slice(-3));
+      timer = setTimeout(tick, 1100);
+    };
+    timer = setTimeout(tick, 300);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <div className="relative h-full flex flex-col justify-end gap-1 pt-3">
+      <div className="text-[10px] font-mono text-[#14b8a6] absolute top-0 left-0 w-full flex justify-between">
+        <span>CHAT DROP</span><span className="text-[#666]">防刷 · 冷却 · 预算</span>
+      </div>
+      {rewards.slice(-2).map((r, i, arr) => (
+        <div
+          key={r.key}
+          className="flex items-center justify-between text-[10px] font-mono transition-all duration-500"
+          style={{ opacity: 0.45 + (i / Math.max(arr.length - 1, 1)) * 0.55 }}
+        >
+          <span className="text-[#999] truncate max-w-[70px]">{r.user}: 发言</span>
+          <span className="text-emerald-400">+{r.amount}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============ 抽奖：奖项概率条轮播 ============
+const LOTTERY_PRIZES = [
+  { name: '一等奖', amount: '×5000', p: 1 },
+  { name: '二等奖', amount: '×500', p: 9 },
+  { name: '三等奖', amount: '×50', p: 30 },
+];
+const LOTTERY_MAX_P = Math.max(...LOTTERY_PRIZES.map(p => p.p));
+
+export function LotteryDemo() {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setActive(a => (a + 1) % LOTTERY_PRIZES.length), 650);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <div className="h-full flex flex-col justify-between">
+      <div className="text-[10px] font-mono text-[#a855f7] flex justify-between">
+        <span>ROLL · 概率抽取</span><span className="text-[#666]">保底 10 次必中</span>
+      </div>
+      <div className="flex flex-col gap-0.5 mt-0.5">
+        {LOTTERY_PRIZES.map((prize, i) => (
+          <div key={prize.name} className="flex items-center gap-2">
+            <span className={`text-[9px] font-mono w-8 ${i === active ? 'text-purple-300' : 'text-[#666]'}`}>{prize.name}</span>
+            <div className="flex-1 h-1 rounded-full bg-[#1c1c1c] overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${i === active ? 'bg-purple-400' : 'bg-purple-400/30'}`}
+                style={{ width: `${(prize.p / LOTTERY_MAX_P) * 100}%` }}
+              />
+            </div>
+            <span className="text-[9px] font-mono text-[#888] w-10 text-right">{prize.amount}</span>
+            <span className={`text-[9px] font-mono w-7 text-right ${i === active ? 'text-purple-300' : 'text-[#666]'}`}>{prize.p}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ============ 信用分：半圆环仪表盘 ============
 export function ExtraDemo() {
   const [score, setScore] = useState(620);

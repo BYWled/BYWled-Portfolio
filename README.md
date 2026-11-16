@@ -54,7 +54,7 @@ www/
 │   │   └── plugins.js        # Koishi 插件数据配置
 │   └── hooks/
 │       ├── useStatusData.js  # 状态数据 hook（Upptime 开放 API）
-│       ├── useNpmDownloads.js # npm 月下载量 hook（批量接口）
+│       ├── useNpmMeta.js     # npm 元数据 hook（版本/许可证/月下载量，30 分钟轮询）
 │       └── useSiteDomain.js  # 域名识别 hook
 ├── docs/                     # 文档与参考
 ├── package.json
@@ -77,9 +77,9 @@ www/
 - **深度详情弹窗**: 技术架构分层（前端/后端/基建）、核心技术实现、部署链路、GitHub 仓库直达
 
 ### 3. Koishi 插件生态
-- **插件卡片**: 7 个已发布 npm 的 Koishi 插件，含版本、许可证、特性标签
-- **实时下载量**: npm 批量接口（`api.npmjs.org`，一次请求取回全部）每 30 分钟刷新
-- **专属微缩 Demo**: K 线引擎、答题倒计时、流式下载、利息结算、排行榜轮换、任务状态流转、信用分仪表盘
+- **插件卡片**: 10 个已发布 npm 的 Koishi 插件，含实时版本、许可证、特性标签
+- **实时 npm 元数据**: `registry.npmjs.org/<pkg>/latest` 取版本/许可证 + `api.npmjs.org` 批量接口取月下载量，30 分钟轮询；新版发布后网页自动更新
+- **专属微缩 Demo**: K 线引擎、答题倒计时、流式下载、利息结算、排行榜轮换、任务状态流转、兑换码生成、聊天气泡掉币、抽奖概率条、信用分仪表盘
 - **双出口链接**: 每卡片直达 npm 主页与 GitHub 源码
 
 ### 4. 路由拓扑系统
@@ -108,17 +108,21 @@ www/
 
 ## 🧩 Koishi 插件清单
 
-| 插件 | npm 包 | 版本 | 许可证 |
-|------|--------|------|--------|
-| Monetary Bourse | koishi-plugin-monetary-bourse | v3.0.2 | GPL-3.0 |
-| Driver Exam | koishi-plugin-driver-exam | v1.0.0 | MIT |
-| Anime RSS | koishi-plugin-anime-rss | v1.0.5 | MIT |
-| Monetary Bank | koishi-plugin-monetary-bank | v2.2.0 | MIT |
-| Jrys-Fix Ranks | koishi-plugin-jrys-fix-ranks | v2.1.2 | MIT |
-| Monetary Mission | koishi-plugin-monetary-mission | v1.0.0-Alpha.1 | MIT |
-| Monetary Extra | koishi-plugin-monetary-extra | v1.0.0-Alpha.0 | MIT |
+| 插件 | npm 包 | 许可证 |
+|------|--------|--------|
+| Monetary Bourse | koishi-plugin-monetary-bourse | GPL-3.0 |
+| Driver Exam | koishi-plugin-driver-exam | MIT |
+| Anime RSS | koishi-plugin-anime-rss | MIT |
+| Monetary Bank | koishi-plugin-monetary-bank | MIT |
+| Jrys-Fix Ranks | koishi-plugin-jrys-fix-ranks | MIT |
+| Monetary Mission | koishi-plugin-monetary-mission | MIT |
+| Monetary CDK | koishi-plugin-monetary-cdk | MIT |
+| Chat Reward | koishi-plugin-monetary-chat-reward | MIT |
+| Monetary Lottery | koishi-plugin-monetary-lottery | MIT |
+| Monetary Extra | koishi-plugin-monetary-extra | MIT |
 
-> 月下载量数据由 `useNpmDownloads` 实时获取；插件实现详情见各 GitHub 仓库或本地 `E:\koishi-app\external\`。
+> **版本号与下载量均为实时数据**：由 `useNpmMeta` 从 npm Registry 拉取（`registry.npmjs.org/<pkg>/latest` 取版本/许可证，`api.npmjs.org` 批量接口取月下载量），30 分钟轮询；插件发布新版后网页自动更新，无需改代码。`plugins.js` 中的 `fallbackVersion` 仅在 npm 拉取失败时兜底展示。
+> 插件实现详情见各 GitHub 仓库或本地 `E:\koishi-app\external\`。
 
 ## 🎨 设计规范
 

@@ -20,10 +20,10 @@ src/
 ├── index.css                  # 全局 CSS：Tailwind 导入
 ├── data/
 │   ├── projects.js            # 静态数据：项目列表、架构分层、核心实现、部署链路
-│   └── plugins.js             # 静态数据：Koishi 插件列表（npm 包名/版本/许可证/特性）
+│   └── plugins.js             # 静态数据：Koishi 插件列表（npm 包名/特性/仓库）
 ├── hooks/
 │   ├── useStatusData.js       # 数据逻辑：Upptime 汇总 API 请求、状态管理
-│   ├── useNpmDownloads.js     # 数据逻辑：npm 批量下载量请求（30 分钟轮询）
+│   ├── useNpmMeta.js          # 数据逻辑：npm 版本/许可证/下载量（30 分钟轮询）
 │   └── useSiteDomain.js       # 域名识别：按 hostname 返回站点名
 └── components/
     ├── index.js               # 统一导出
@@ -38,7 +38,7 @@ src/
     ├── ProjectModal.jsx       # 业务：项目详情弹窗（架构/实现/链路/仓库）
     ├── DemoComponents.jsx     # 业务：各项目微缩 Demo
     ├── KoishiPlugins.jsx      # 业务：Koishi 插件生态区块（统计 + 网格）
-    ├── PluginCard.jsx         # 业务：插件卡片（版本/下载量/Demo/双链接）
+    ├── PluginCard.jsx         # 业务：插件卡片（实时版本/Demo/双链接）
     └── PluginDemos.jsx        # 业务：各插件微缩 Demo
 ```
 
@@ -50,9 +50,10 @@ src/
         [wled-status 仓库 summary.json]
         (Upptime · GitHub Actions 自动更新 · raw.githubusercontent 直连)
 
-[plugins.js] → [useNpmDownloads.js] → [KoishiPlugins] → [PluginCard]
+[plugins.js] → [useNpmMeta.js] → [KoishiPlugins] → [PluginCard]
                      ↓
-        [api.npmjs.org 批量下载量接口] (单请求全量, 自带 CORS)
+        [registry.npmjs.org/<pkg>/latest] → 版本/许可证（逐包并行，自带 CORS）
+        [api.npmjs.org/downloads/point/last-month/...] → 月下载量（单次批量）
 ```
 
 ## 🔑 关键配置
@@ -135,30 +136,38 @@ export const MONITOR_MAP = {
 ### 3. 插件数据 (data/plugins.js)
 
 ```javascript
-// PLUGINS: Koishi 插件配置数组（7 个，按月下载量降序）
+// PLUGINS: Koishi 插件配置数组（当前 10 个）
+// 注意：version/license 不在此硬编码维护，由 useNpmMeta 实时获取
 const PLUGINS = [
   {
     id: 'bourse',            // 唯一标识（同时用于 Demo 注册）
     name: 'Monetary Bourse', // 展示名
     pkg: 'koishi-plugin-monetary-bourse', // npm 包名（拼接 npm 主页链接）
-    version: 'v3.0.2',       // 静态维护，发布新版时手动更新
-    license: 'GPL-3.0',
+    fallbackVersion: '3.0.2', // 仅 npm 拉取失败时兜底，格式与 npm 一致（不带 v）
+    license: 'GPL-3.0',       // 同上，兜底用
     accent: '#f59e0b',       // 主题色（下载量徽章着色）
     description: '...',
     features: ['特性1', '特性2', '特性3'],
     repo: 'https://github.com/BYWled/...',
   }
 ];
+
+// 新增插件三步：
+// 1. plugins.js 添加配置（含 repo）
+// 2. PluginDemos.jsx 编写 Demo（容器 h-[76px] - p-3 ≈ 52px 内容高度，需实测不溢出）
+// 3. PluginCard.jsx 的 DEMOS 映射注册
 ```
 
-### 4. npm 下载量 Hook (hooks/useNpmDownloads.js)
+### 4. npm 元数据 Hook (hooks/useNpmMeta.js)
 
 ```javascript
-// npm 批量接口：一次请求返回全部包的近 30 天下载量，自带 CORS
-const BULK_URL = 'https://api.npmjs.org/downloads/point/last-month/<pkg1>,<pkg2>,...';
+// 版本/许可证：registry.npmjs.org/<pkg>/latest（自带 CORS），逐包并行，单包失败不影响其他
+// 下载量：api.npmjs.org/downloads/point/last-month/<pkg1,pkg2,...> 单次批量
+// 注意：无下载记录的包返回 null（新发布插件），调用方需兼容
 const REFRESH_INTERVAL = 30 * 60 * 1000; // 30 分钟
 
-// 返回 { [pkg]: number }；失败时保留上次成功数据（或 null）
+// 返回 { versions: {pkg: string}, licenses: {pkg: string}, downloads: {pkg: number} }
+// 与上次成功数据逐字段合并，单包失败不洗掉整体状态
 ```
 
 ### 5. 全局样式 (App.jsx GLOBAL_STYLES)
@@ -256,7 +265,6 @@ const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 分钟，与 raw CDN 缓存对齐
 ```
 
 ### 5. 修改 Header 状态显示
-
 文件: `components/Header.jsx`
 
 ```jsx
@@ -321,6 +329,12 @@ A: 检查 `AnimatedModal` 的 `isRendered` 状态延迟逻辑。
 - [wled-status 状态仓库](https://github.com/BYWled/wled-status)
 
 ## 🔄 更新日志
+
+### 2026-11-16
+- 新增 3 个 Koishi 插件：Monetary CDK / Chat Reward / Monetary Lottery（共 10 个）
+- 版本号与许可证改为实时获取：`useNpmMeta` 从 registry.npmjs.org/<pkg>/latest 拉取（30 分钟轮询），`plugins.js` 仅保留 fallbackVersion 兜底；移除静态 version 维护
+- useNpmDownloads 合并入 useNpmMeta（版本/许可证/下载量一次拉齐）
+- 新增 3 个微缩 Demo（口令生成/聊天气泡掉币/概率条轮播）；Demo 盒 70px→76px 并量化验证无溢出
 
 ### 2026-11-15
 - 脱敏修复：部署链路/架构数据移除云供应商、内部端口、进程名、库名与自托管 Runner 细节
